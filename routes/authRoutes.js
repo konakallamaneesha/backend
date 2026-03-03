@@ -37,6 +37,7 @@ router.post("/register", async (req, res) => {
 });
 
 // ================= LOGIN =================
+// ================= LOGIN =================
 router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -57,7 +58,14 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1d" }
     );
 
-    res.json({ token });
+    // ✅ IMPORTANT CHANGE HERE
+    res.json({
+      token,
+      user: {
+        name: user.name,
+        email: user.email,
+      },
+    });
 
   } catch (err) {
     console.log(err);
