@@ -5,38 +5,68 @@ const User = require("../models/User");
 
 const router = express.Router();
 
-// Register
+// ================= REGISTER =================
 router.post("/register", async (req, res) => {
-    const { name, email, password } = req.body;
+  try {
+    const { name, email, password, masterPassword } = req.body;
 
-    const hashed = await bcrypt.hash(password, 10);
+    // Check existing user
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already registered ❌" });
+    }
 
-    const user = new User({ name, email, password: hashed });
+    // Hash login password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Hash master password
+    const hashedMaster = await bcrypt.hash(masterPassword, 10);
+
+    // Create user
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      masterPassword: hashedMaster,
+    });
 
     await user.save();
 
-    res.json({ message: "User registered" });
+    res.json({ message: "User registered successfully ✅" });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error ❌" });
+  }
 });
 
-// Login
+// ================= LOGIN =================
 router.post("/login", async (req, res) => {
+  try {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
 
-    if (!user) return res.status(400).json({ message: "User not found" });
+    if (!user)
+      return res.status(400).json({ message: "User not found ❌" });
 
     const valid = await bcrypt.compare(password, user.password);
 
-    if (!valid) return res.status(400).json({ message: "Invalid password" });
+    if (!valid)
+      return res.status(400).json({ message: "Invalid password ❌" });
 
     const token = jwt.sign(
-        { id: user._id, email: user.email },
-        "secretkey",
-        { expiresIn: "1d" }
+      { id: user._id, email: user.email },
+      process.env.JWT_SECRET,  // 🔐 better than hardcoding
+      { expiresIn: "1d" }
     );
 
     res.json({ token });
+
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ message: "Server error ❌" });
+  }
 });
 
 module.exports = router;
